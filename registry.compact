@@ -1,0 +1,35 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+// Exported: visible to TypeScript clients and other contracts via ledger()
+export ledger memberCount: Counter;
+export ledger registry: Map<Bytes<32>, Bytes<32>>;
+
+// Non-exported: still stored on-chain, but not part of the generated Ledger type.
+// Omitting export does not make this field private - it is still publicly readable
+// by anyone querying raw contract state on-chain.
+ledger operationCount: Counter;
+
+export circuit register(id: Bytes<32>, data: Bytes<32>): [] {
+    assert(!registry.member(disclose(id)), "id already registered");
+    registry.insert(disclose(id), disclose(data));
+    memberCount.increment(1);
+    operationCount.increment(1);
+}
+
+export circuit update(id: Bytes<32>, newData: Bytes<32>): [] {
+    assert(registry.member(disclose(id)), "id not registered");
+    registry.insert(disclose(id), disclose(newData));
+    operationCount.increment(1);
+}
+
+export circuit deregister(id: Bytes<32>): [] {
+    assert(registry.member(disclose(id)), "id not registered");
+    registry.remove(disclose(id));
+    operationCount.increment(1);
+}
+
+export circuit isRegistered(id: Bytes<32>): Boolean {
+    return registry.member(disclose(id));
+}
