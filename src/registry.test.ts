@@ -6,7 +6,7 @@ import {
 } from '@midnight-ntwrk/compact-runtime';
 import { Contract, ledger } from '../managed/registry/contract/index.js';
 
-const coinPublicKey = new Uint8Array(32);
+const coinPublicKey = { bytes: new Uint8Array(32) };
 const contractAddress = sampleContractAddress();
 
 function createSimulator() {
@@ -72,18 +72,18 @@ describe('registry contract', () => {
     expect(state.registry.member(idA)).toBe(false);
   });
 
-  it('operationCount is not accessible via the generated Ledger type', () => {
+  it('operationCount is not present in the generated Ledger type', () => {
     let { contract, circuitContext } = createSimulator();
 
     ({ context: circuitContext } = contract.impureCircuits.register(circuitContext, idA, dataA));
     ({ context: circuitContext } = contract.impureCircuits.update(circuitContext, idA, dataB));
     const state = ledger(circuitContext.currentQueryContext.state);
 
-    // memberCount is exported - accessible
+    // memberCount is exported - present in the generated Ledger type
     expect(state.memberCount).toBe(1n);
-    // operationCount is not exported - undefined in the generated Ledger type
-    // It is still on-chain, but omitting export removes it from the TypeScript API
-    expect((state as any).operationCount).toBeUndefined();
+    // operationCount is not exported - absent from the generated Ledger object's keys
+    // Object.keys proves the field genuinely does not exist in the TypeScript bindings
+    expect(Object.keys(state)).not.toContain('operationCount');
   });
 
   it('reports correct membership for registered and unregistered ids', () => {
